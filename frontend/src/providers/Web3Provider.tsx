@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 const queryClient = new QueryClient();
 
 // 1. Get projectId from https://cloud.reown.com
-const projectId = "YOUR_PROJECT_ID"; // Placeholder
+const projectId = "feca21a6b6bafd0dc3099166367e429d";
 
 // 2. Create a metadata object - optional
 const metadata = {
