@@ -1,0 +1,22 @@
+{
+  "name": "circuits",
+  "version": "1.0.0",
+  "description": "ZK-KYC circuits for CompliantAssetVault",
+  "main": "index.js",
+  "scripts": {
+    "compile": "circom kyc.circom --r1cs --wasm --sym",
+    "setup": "snarkjs groth16 setup kyc.r1cs pot12_final.ptau kyc_0000.zkey",
+    "contribute": "snarkjs zkey contribute kyc_0000.zkey kyc_final.zkey --name='First contribution' -v",
+    "export-verifier": "snarkjs zkey export solidityverifier kyc_final.zkey verifier.sol",
+    "generate-proof": "npx ts-node generate_proof.ts"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
