@@ -1,0 +1,47 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build artifacts
+dist
+dist-ssr
+artifacts
+cache
+typechain
+typechain-types
+out
+build
+
+# Hardhat Ignition
+ignition/deployments/chain-31337
+
+# Coverage
+coverage
+coverage.json
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
