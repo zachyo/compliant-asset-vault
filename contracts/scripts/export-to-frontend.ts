@@ -17,31 +17,36 @@ async function main() {
   }
 
   const artifacts = [
-    "CompliantAssetVault",
-    "RWAAsset",
-    "KYCSBT",
-    "MockYieldToken",
-    "Verifier",
+    { file: "CompliantAssetVault.sol", name: "CompliantAssetVault" },
+    { file: "RWAAsset.sol", name: "RWAAsset" },
+    { file: "KYCSBT.sol", name: "KYCSBT" },
+    { file: "MockYieldToken.sol", name: "MockYieldToken" },
+    { file: "Verifier.sol", name: "Groth16Verifier" },
+    { file: "RWARegistry.sol", name: "RWARegistry" },
+    { file: "MockPriceFeed.sol", name: "MockPriceFeed" },
+    { file: "RWAProofOfReserve.sol", name: "RWAProofOfReserve" },
   ];
 
   const contractData: any = {};
 
-  for (const name of artifacts) {
+  for (const item of artifacts) {
     const artifactPath = path.join(
       __dirname,
       "..",
       "artifacts",
       "contracts",
-      `${name}.sol`,
-      `${name}.json`
+      item.file,
+      `${item.name}.json`
     );
 
     if (fs.existsSync(artifactPath)) {
       const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
-      contractData[name] = {
+      contractData[item.name] = {
         abi: artifact.abi,
       };
-      console.log(`Exported ABI for ${name}`);
+      console.log(`Exported ABI for ${item.name}`);
+    } else {
+      console.warn(`Artifact not found: ${artifactPath}`);
     }
   }
 
