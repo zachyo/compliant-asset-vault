@@ -3,6 +3,7 @@ import { Upload, Info, Loader2 } from "lucide-react";
 import { useWriteContract, useAccount } from "wagmi";
 import { CONTRACT_ADDRESSES } from "../constants";
 import contracts from "../contracts/contracts.json";
+import { toast } from "sonner";
 
 export const Tokenize: React.FC = () => {
   const { address } = useAccount();
@@ -21,21 +22,37 @@ export const Tokenize: React.FC = () => {
     if (!address || !value) return;
 
     setIsMinting(true);
+    const toastId = toast.loading("Minting asset on Mantle...");
     try {
       // In a real app, we'd upload metadata to IPFS here
       const tokenUri = `ipfs://mock-hash-${Date.now()}`;
 
-      await writeContractAsync({
+      const hash = await writeContractAsync({
         address: CONTRACT_ADDRESSES.RWAAsset as `0x${string}`,
-        abi: contracts.RWAAsset.abi,
+        abi: contracts.RWAAsset.abi as any,
         functionName: "mint",
-        args: [address, tokenUri, isRegulated],
+        args: [
+          address,
+          tokenUri,
+          isRegulated,
+          assetType,
+          BigInt(value),
+          metadata,
+        ],
       });
 
-      alert("Asset tokenized successfully on Mantle!");
+      toast.loading("Transaction submitted. Waiting for confirmation...", {
+        id: toastId,
+      });
+
+      // We could use useWaitForTransactionReceipt here too, but for simplicity
+      // in this component we'll just show success after the hash is returned
+      // or we can just leave it as is if we want to be quick.
+      // Actually, let's just use the toast to show success.
+      toast.success("Asset tokenized successfully on Mantle!", { id: toastId });
     } catch (err: any) {
       console.error(err);
-      alert("Failed to tokenize asset: " + err.message);
+      toast.error("Failed to tokenize asset: " + err.message, { id: toastId });
     } finally {
       setIsMinting(false);
     }

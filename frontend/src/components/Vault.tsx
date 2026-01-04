@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Lock,
   Unlock,
@@ -6,22 +6,35 @@ import {
   ArrowRight,
   Loader2,
   TrendingUp,
+  Info,
 } from "lucide-react";
-import { useWriteContract, useAccount, useReadContract } from "wagmi";
+import {
+  useWriteContract,
+  useAccount,
+  useReadContract,
+  useReadContracts,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { CONTRACT_ADDRESSES } from "../constants";
 import contracts from "../contracts/contracts.json";
 import { formatEther } from "viem";
+import { toast } from "sonner";
 
 export const Vault: React.FC = () => {
   const { address } = useAccount();
   const [isActionLoading, setIsActionLoading] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
 
   const { writeContractAsync } = useWriteContract();
+
+  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
 
   // 1. Read pending yield
   const { data: yieldAmount, refetch: refetchYield } = useReadContract({
     address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
-    abi: contracts.CompliantAssetVault.abi,
+    abi: contracts.CompliantAssetVault.abi as any,
     functionName: "pendingYield",
     args: [address],
     query: {
@@ -33,7 +46,7 @@ export const Vault: React.FC = () => {
   // 2. Check if user is verified
   const { data: isVerified } = useReadContract({
     address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
-    abi: contracts.CompliantAssetVault.abi,
+    abi: contracts.CompliantAssetVault.abi as any,
     functionName: "isVerified",
     args: [address],
     query: {
@@ -41,31 +54,106 @@ export const Vault: React.FC = () => {
     },
   });
 
+  // 3. Fetch potential assets
+  const tokenIds = Array.from({ length: 20 }, (_, i) => i);
+
+  // Check ownership
+  const { data: owners, refetch: refetchOwners } = useReadContracts({
+    contracts: tokenIds.map((id) => ({
+      address: CONTRACT_ADDRESSES.RWAAsset as `0x${string}`,
+      abi: contracts.RWAAsset.abi as any,
+      functionName: "ownerOf",
+      args: [BigInt(id)],
+    })) as any,
+  });
+
+  // Check stakes
+  const { data: stakes, refetch: refetchStakes } = useReadContracts({
+    contracts: tokenIds.map((id) => ({
+      address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
+      abi: contracts.CompliantAssetVault.abi as any,
+      functionName: "stakes",
+      args: [BigInt(id)],
+    })) as any,
+  });
+
+  // Check registry data
+  const { data: registryData } = useReadContracts({
+    contracts: tokenIds.map((id) => ({
+      address: CONTRACT_ADDRESSES.RWARegistry as `0x${string}`,
+      abi: contracts.RWARegistry.abi as any,
+      functionName: "assets",
+      args: [BigInt(id)],
+    })) as any,
+  });
+
+  useEffect(() => {
+    if (isConfirmed) {
+      refetchYield();
+      refetchOwners();
+      refetchStakes();
+      setIsActionLoading(null);
+      setTxHash(undefined);
+    }
+  }, [isConfirmed, refetchYield, refetchOwners, refetchStakes]);
+
+  const stakeableAssets = tokenIds
+    .map((id, index) => {
+      const owner = owners?.[index]?.result;
+      const metadata = registryData?.[index]?.result as any;
+      if (owner === address) {
+        return {
+          id,
+          name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
+          value: metadata ? `$${Number(metadata[1]).toLocaleString()}` : "$0",
+        };
+      }
+      return null;
+    })
+    .filter((a) => a !== null);
+
+  const stakedAssets = tokenIds
+    .map((id, index) => {
+      const stake = stakes?.[index]?.result as any;
+      const metadata = registryData?.[index]?.result as any;
+      if (stake && stake[1] === address) {
+        // stake[1] is the owner address in the Stake struct
+        return {
+          id,
+          name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
+          value: metadata ? `$${Number(metadata[1]).toLocaleString()}` : "$0",
+        };
+      }
+      return null;
+    })
+    .filter((a) => a !== null);
+
   const handleDeposit = async (tokenId: number) => {
     if (!address) return;
     setIsActionLoading(`deposit-${tokenId}`);
+    const toastId = toast.loading("Approving and depositing asset...");
     try {
       // Step 1: Approve Vault
       await writeContractAsync({
         address: CONTRACT_ADDRESSES.RWAAsset as `0x${string}`,
-        abi: contracts.RWAAsset.abi,
+        abi: contracts.RWAAsset.abi as any,
         functionName: "approve",
         args: [CONTRACT_ADDRESSES.CompliantAssetVault, BigInt(tokenId)],
       });
 
       // Step 2: Deposit
-      await writeContractAsync({
+      const hash = await writeContractAsync({
         address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
-        abi: contracts.CompliantAssetVault.abi,
+        abi: contracts.CompliantAssetVault.abi as any,
         functionName: "deposit",
         args: [CONTRACT_ADDRESSES.RWAAsset, BigInt(tokenId)],
       });
 
-      alert("Asset deposited successfully!");
+      setTxHash(hash);
+      toast.success("Transaction submitted!", { id: toastId });
     } catch (err: any) {
       console.error(err);
-      alert("Deposit failed: " + err.message);
-    } finally {
+      toast.error("Deposit failed: " + err.message, { id: toastId });
       setIsActionLoading(null);
     }
   };
@@ -73,18 +161,19 @@ export const Vault: React.FC = () => {
   const handleWithdraw = async (tokenId: number) => {
     if (!address) return;
     setIsActionLoading(`withdraw-${tokenId}`);
+    const toastId = toast.loading("Withdrawing asset...");
     try {
-      await writeContractAsync({
+      const hash = await writeContractAsync({
         address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
-        abi: contracts.CompliantAssetVault.abi,
+        abi: contracts.CompliantAssetVault.abi as any,
         functionName: "withdraw",
         args: [CONTRACT_ADDRESSES.RWAAsset, BigInt(tokenId)],
       });
-      alert("Asset withdrawn successfully!");
+      setTxHash(hash);
+      toast.success("Withdrawal submitted!", { id: toastId });
     } catch (err: any) {
       console.error(err);
-      alert("Withdraw failed: " + err.message);
-    } finally {
+      toast.error("Withdraw failed: " + err.message, { id: toastId });
       setIsActionLoading(null);
     }
   };
@@ -92,18 +181,18 @@ export const Vault: React.FC = () => {
   const handleClaimYield = async () => {
     if (!address) return;
     setIsActionLoading("claim");
+    const toastId = toast.loading("Claiming yield...");
     try {
-      await writeContractAsync({
+      const hash = await writeContractAsync({
         address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
-        abi: contracts.CompliantAssetVault.abi,
+        abi: contracts.CompliantAssetVault.abi as any,
         functionName: "claimYield",
       });
-      alert("Yield claimed successfully!");
-      refetchYield();
+      setTxHash(hash);
+      toast.success("Claim submitted!", { id: toastId });
     } catch (err: any) {
       console.error(err);
-      alert("Claim failed: " + err.message);
-    } finally {
+      toast.error("Claim failed: " + err.message, { id: toastId });
       setIsActionLoading(null);
     }
   };
@@ -145,50 +234,61 @@ export const Vault: React.FC = () => {
             Available to Stake
           </h3>
           <div className="space-y-3">
-            {[
-              { name: "Corporate Bond A", id: 12, value: "$50,000" },
-              { name: "Invoice #9901", id: 45, value: "$15,200" },
-            ].map((asset, i) => (
-              <div
-                key={i}
-                className="bg-[#0d0d0d] border border-[#1a1a1a] p-6 rounded-sm flex items-center justify-between group hover:border-[#262626] transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-[#121212] border border-[#1a1a1a] flex items-center justify-center rounded-sm">
-                    <Coins className="w-5 h-5 text-zinc-500" />
+            {stakeableAssets.length > 0 ? (
+              stakeableAssets.map((asset, i) => (
+                <div
+                  key={i}
+                  className="bg-[#0d0d0d] border border-[#1a1a1a] p-6 rounded-sm flex items-center justify-between group hover:border-[#262626] transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-[#121212] border border-[#1a1a1a] flex items-center justify-center rounded-sm">
+                      <Coins className="w-5 h-5 text-zinc-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">
+                        {asset?.name}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        Token ID: #{asset?.id}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">{asset.name}</p>
-                    <p className="text-xs text-zinc-500">
-                      Token ID: #{asset.id}
-                    </p>
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-white">
+                        {asset?.value}
+                      </p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest">
+                        Value
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeposit(asset!.id)}
+                      disabled={
+                        !isVerified ||
+                        isActionLoading === `deposit-${asset?.id}`
+                      }
+                      title={
+                        isVerified
+                          ? "Deposit asset to start earning yield"
+                          : "Verify identity first"
+                      }
+                      className="p-2 bg-white text-black rounded-sm hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                    >
+                      {isActionLoading === `deposit-${asset?.id}` ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Lock className="w-4 h-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-white">
-                      {asset.value}
-                    </p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest">
-                      Value
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleDeposit(asset.id)}
-                    disabled={
-                      !isVerified || isActionLoading === `deposit-${asset.id}`
-                    }
-                    className="p-2 bg-white text-black rounded-sm hover:bg-zinc-200 transition-colors disabled:opacity-50"
-                  >
-                    {isActionLoading === `deposit-${asset.id}` ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Lock className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-xs text-zinc-500 italic p-4">
+                No assets available to stake.
+              </p>
+            )}
           </div>
         </div>
 
@@ -204,8 +304,18 @@ export const Vault: React.FC = () => {
                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">
                     Total Staked
                   </p>
-                  <p className="text-3xl font-bold text-white">$20,500</p>
+                  <p className="text-3xl font-bold text-white">
+                    $
+                    {stakedAssets
+                      .reduce(
+                        (acc, asset) =>
+                          acc + Number(asset.value.replace(/[^0-9.-]+/g, "")),
+                        0
+                      )
+                      .toLocaleString()}
+                  </p>
                 </div>
+
                 <div className="text-right">
                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">
                     Yield Accrued
@@ -230,6 +340,7 @@ export const Vault: React.FC = () => {
                   (yieldAmount as bigint) === 0n ||
                   isActionLoading === "claim"
                 }
+                title="Claim your accrued yield in MYT tokens"
                 className="w-full py-4 bg-[#1a1a1a] border border-[#262626] text-white text-sm font-bold uppercase tracking-[0.2em] hover:bg-[#262626] transition-colors rounded-sm flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isActionLoading === "claim" ? (
@@ -248,50 +359,44 @@ export const Vault: React.FC = () => {
               Active Stakes
             </h3>
             <div className="space-y-3">
-              {[
-                {
-                  name: "Invoice #8821",
-                  id: 8,
-                  value: "$12,000",
-                  yield: "72.10 MYT",
-                },
-                {
-                  name: "Invoice #8822",
-                  id: 9,
-                  value: "$8,500",
-                  yield: "52.40 MYT",
-                },
-              ].map((asset, i) => (
-                <div
-                  key={i}
-                  className="bg-[#0d0d0d] border border-[#1a1a1a] p-4 rounded-sm flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center rounded-sm">
-                      <TrendingUp className="w-4 h-4 text-emerald-500" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white">
-                        {asset.name}
-                      </p>
-                      <p className="text-[10px] text-zinc-500">
-                        Token ID: #{asset.id}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleWithdraw(asset.id)}
-                    disabled={isActionLoading === `withdraw-${asset.id}`}
-                    className="text-zinc-500 hover:text-white transition-colors disabled:opacity-50"
+              {stakedAssets.length > 0 ? (
+                stakedAssets.map((asset, i) => (
+                  <div
+                    key={i}
+                    className="bg-[#0d0d0d] border border-[#1a1a1a] p-4 rounded-sm flex items-center justify-between"
                   >
-                    {isActionLoading === `withdraw-${asset.id}` ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Unlock className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center rounded-sm">
+                        <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">
+                          {asset?.name}
+                        </p>
+                        <p className="text-[10px] text-zinc-500">
+                          Token ID: #{asset?.id}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleWithdraw(asset!.id)}
+                      disabled={isActionLoading === `withdraw-${asset?.id}`}
+                      title="Withdraw asset from vault"
+                      className="text-zinc-500 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      {isActionLoading === `withdraw-${asset?.id}` ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Unlock className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-zinc-500 italic p-4">
+                  No active stakes.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -299,19 +404,3 @@ export const Vault: React.FC = () => {
     </div>
   );
 };
-
-const Info = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  </svg>
-);

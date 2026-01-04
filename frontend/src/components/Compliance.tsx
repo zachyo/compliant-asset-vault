@@ -1,16 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShieldCheck,
   Fingerprint,
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Info,
+  HelpCircle,
 } from "lucide-react";
 import * as snarkjs from "snarkjs";
 import { buildPoseidon } from "circomlibjs";
-import { useWriteContract, useAccount, useReadContract } from "wagmi";
+import {
+  useWriteContract,
+  useAccount,
+  useReadContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 import { CONTRACT_ADDRESSES, ZK_CONFIG } from "../constants";
 import contracts from "../contracts/contracts.json";
+import { toast } from "sonner";
 
 export const Compliance: React.FC = () => {
   const { address } = useAccount();
@@ -21,18 +29,34 @@ export const Compliance: React.FC = () => {
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const { writeContractAsync } = useWriteContract();
+  const { writeContractAsync, data: txHash } = useWriteContract();
 
-  const { data: isVerified, isLoading: isCheckingVerification } =
-    useReadContract({
-      address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
-      abi: contracts.CompliantAssetVault.abi,
-      functionName: "isVerified",
-      args: [address],
-      query: {
-        enabled: !!address,
-      },
-    });
+  const {
+    data: isVerified,
+    isLoading: isCheckingVerification,
+    refetch,
+  } = useReadContract({
+    address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
+    abi: contracts.CompliantAssetVault.abi,
+    functionName: "isVerified",
+    args: [address],
+    query: {
+      enabled: !!address,
+    },
+  });
+
+  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  useEffect(() => {
+    if (isConfirmed) {
+      refetch();
+      setStatus("success");
+      setIsGenerating(false);
+      toast.success("Identity verified successfully on Mantle!");
+    }
+  }, [isConfirmed, refetch]);
 
   const generateAndVerify = async () => {
     if (!secret || !address) return;
@@ -40,6 +64,7 @@ export const Compliance: React.FC = () => {
     setIsGenerating(true);
     setStatus("generating");
     setErrorMessage("");
+    const toastId = toast.loading("Generating ZK Proof...");
 
     try {
       // 1. Build Poseidon hasher
@@ -57,6 +82,7 @@ export const Compliance: React.FC = () => {
       );
 
       setStatus("verifying");
+      toast.loading("Verifying on Mantle...", { id: toastId });
 
       // 3. Format calldata for Solidity
       const calldata = await snarkjs.groth16.exportSolidityCallData(
@@ -84,15 +110,18 @@ export const Compliance: React.FC = () => {
         args: [a, b, c, input],
       });
 
-      setStatus("success");
+      // We don't set status to success here anymore, we wait for isConfirmed
+      toast.loading("Transaction submitted. Waiting for confirmation...", {
+        id: toastId,
+      });
     } catch (err: any) {
       console.error(err);
       setStatus("error");
-      setErrorMessage(
-        err.message || "Failed to verify. Ensure ZK files are in public/zk/"
-      );
-    } finally {
       setIsGenerating(false);
+      const msg =
+        err.message || "Failed to verify. Ensure ZK files are in public/zk/";
+      setErrorMessage(msg);
+      toast.error(msg, { id: toastId });
     }
   };
 
@@ -127,15 +156,34 @@ export const Compliance: React.FC = () => {
             name or country.
           </p>
           <div className="space-y-4">
+            <div className="p-4 bg-zinc-500/5 border border-zinc-500/10 rounded-sm space-y-2">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  What is an Identity Secret?
+                </span>
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed">
+                Your identity secret is a <strong>private numeric value</strong>{" "}
+                (e.g., 123456) that acts as your digital DNA. In this
+                production-ready version, this is integrated with{" "}
+                <strong>AML/KYB checks</strong> via SumSub/Persona APIs to
+                ensure compliance with global regulations. For this demo, you
+                can use any number. <strong>Never share this secret.</strong>
+              </p>
+            </div>
+
             <label className="block">
-              <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
-                Identity Secret
-              </span>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                  Identity Secret
+                </span>
+              </div>
               <input
                 type="password"
                 value={secret}
                 onChange={(e) => setSecret(e.target.value)}
-                placeholder="••••••••••••••••"
+                placeholder="Enter your secret number"
                 className="mt-2 w-full bg-[#121212] border border-[#1a1a1a] text-white px-4 py-3 rounded-sm focus:outline-none focus:border-zinc-500 transition-colors"
                 disabled={isGenerating || !!isVerified}
               />

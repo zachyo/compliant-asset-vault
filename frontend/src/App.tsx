@@ -11,7 +11,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard setActiveTab={setActiveTab} />;
       case "tokenize":
         return <Tokenize />;
       case "vault":
@@ -19,7 +19,7 @@ function App() {
       case "compliance":
         return <Compliance />;
       default:
-        return <Dashboard />;
+        return <Dashboard setActiveTab={setActiveTab} />;
     }
   };
 

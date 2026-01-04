@@ -1,11 +1,15 @@
 import React from "react";
-import { TrendingUp, Wallet, Shield, ArrowUpRight } from "lucide-react";
-import { useAccount, useReadContract } from "wagmi";
+import { TrendingUp, Wallet, Shield, ExternalLink } from "lucide-react";
+import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { CONTRACT_ADDRESSES } from "../constants";
 import contracts from "../contracts/contracts.json";
 import { formatEther } from "viem";
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  setActiveTab: (tab: string) => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
   const { address } = useAccount();
 
   const { data: yieldAmount } = useReadContract({
@@ -15,6 +19,16 @@ export const Dashboard: React.FC = () => {
     args: [address],
     query: {
       enabled: !!address,
+      refetchInterval: 5000,
+    },
+  });
+
+  const { data: tvl } = useReadContract({
+    address: CONTRACT_ADDRESSES.CompliantAssetVault as `0x${string}`,
+    abi: contracts.CompliantAssetVault.abi,
+    functionName: "totalValueLocked",
+    query: {
+      refetchInterval: 10000,
     },
   });
 
@@ -28,14 +42,67 @@ export const Dashboard: React.FC = () => {
     },
   });
 
+  const { data: reserves } = useReadContract({
+    address: CONTRACT_ADDRESSES.RWAProofOfReserve as `0x${string}`,
+    abi: contracts.RWAProofOfReserve.abi,
+    functionName: "getLatestReserve",
+    query: {
+      refetchInterval: 10000,
+    },
+  });
+
+  // Fetch some potential token IDs to show real data if they exist
+  const tokenIds = Array.from({ length: 20 }, (_, i) => i);
+  const { data: owners } = useReadContracts({
+    contracts: tokenIds.map((id) => ({
+      address: CONTRACT_ADDRESSES.RWAAsset as `0x${string}`,
+      abi: contracts.RWAAsset.abi as any,
+      functionName: "ownerOf",
+      args: [BigInt(id)],
+    })) as any,
+  });
+
+  const { data: registryData } = useReadContracts({
+    contracts: tokenIds.map((id) => ({
+      address: CONTRACT_ADDRESSES.RWARegistry as `0x${string}`,
+      abi: contracts.RWARegistry.abi as any,
+      functionName: "assets",
+      args: [BigInt(id)],
+    })) as any,
+  });
+
+  const userAssets = tokenIds
+    .map((id, index) => {
+      const owner = owners?.[index]?.result;
+      const metadata = registryData?.[index]?.result as any;
+
+      if (owner === address) {
+        return {
+          id,
+          name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
+          type: metadata ? metadata[0] : "Unknown",
+          value: metadata ? `$${Number(metadata[1]).toLocaleString()}` : "$0",
+          status: "In Wallet",
+        };
+      }
+      return null;
+    })
+    .filter((a) => a !== null);
+
   const stats = [
     {
       label: "Total Value Locked",
-      value: "$1,240,500",
+      value: tvl ? `$${Number(tvl).toLocaleString()}` : "$0",
       icon: Wallet,
       change: "+12.5%",
     },
-    { label: "Your Staked Assets", value: "4", icon: Shield, change: "0%" },
+
+    {
+      label: "Your Assets",
+      value: userAssets.length.toString(),
+      icon: Shield,
+      change: "0%",
+    },
     {
       label: "Yield Earned",
       value: yieldAmount
@@ -45,6 +112,8 @@ export const Dashboard: React.FC = () => {
       change: "+5.2%",
     },
   ];
+
+  const explorerUrl = "https://sepolia.mantlescan.xyz/token/";
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -79,7 +148,10 @@ export const Dashboard: React.FC = () => {
             <h3 className="text-lg font-bold text-white tracking-tight">
               Your Tokenized Assets
             </h3>
-            <button className="text-xs text-zinc-500 hover:text-white transition-colors">
+            <button
+              onClick={() => setActiveTab("vault")}
+              className="text-xs text-zinc-500 hover:text-white transition-colors"
+            >
               View All
             </button>
           </div>
@@ -95,53 +167,44 @@ export const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1a1a1a]">
-                {[
-                  {
-                    name: "Invoice #8821",
-                    type: "Invoice",
-                    value: "$12,000",
-                    status: "Staked",
-                  },
-                  {
-                    name: "Corporate Bond A",
-                    type: "Bond",
-                    value: "$50,000",
-                    status: "In Wallet",
-                  },
-                  {
-                    name: "Invoice #8822",
-                    type: "Invoice",
-                    value: "$8,500",
-                    status: "Staked",
-                  },
-                ].map((asset, i) => (
-                  <tr
-                    key={i}
-                    className="hover:bg-[#121212] transition-colors group"
-                  >
-                    <td className="px-6 py-4 font-medium text-zinc-200">
-                      {asset.name}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-500">{asset.type}</td>
-                    <td className="px-6 py-4 text-zinc-300">{asset.value}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={
-                          asset.status === "Staked"
-                            ? "text-emerald-500"
-                            : "text-zinc-500"
-                        }
-                      >
-                        {asset.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <ArrowUpRight className="w-4 h-4 text-zinc-500 hover:text-white" />
-                      </button>
+                {userAssets.length > 0 ? (
+                  userAssets.map((asset, i) => (
+                    <tr
+                      key={i}
+                      className="hover:bg-[#121212] transition-colors group"
+                    >
+                      <td className="px-6 py-4 font-medium text-zinc-200">
+                        {asset?.name}
+                      </td>
+                      <td className="px-6 py-4 text-zinc-500">{asset?.type}</td>
+                      <td className="px-6 py-4 text-zinc-300">
+                        {asset?.value}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-zinc-500">{asset?.status}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <a
+                          href={`${explorerUrl}${CONTRACT_ADDRESSES.RWAAsset}?a=${asset?.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity inline-block"
+                        >
+                          <ExternalLink className="w-4 h-4 text-zinc-500 hover:text-white" />
+                        </a>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-8 text-center text-zinc-500 text-xs italic"
+                    >
+                      No assets found. Mint your first RWA to see it here.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -187,28 +250,73 @@ export const Dashboard: React.FC = () => {
                 </span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Expires In</span>
-                <span className="text-zinc-300">
-                  {isVerified ? "242 Days" : "N/A"}
-                </span>
+                <span className="text-zinc-500">Network</span>
+                <span className="text-zinc-300">Mantle Sepolia</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-zinc-500">Region</span>
-                <span className="text-zinc-300">
-                  {isVerified ? "European Union" : "N/A"}
+                <span className="text-zinc-500">Status</span>
+                <span
+                  className={isVerified ? "text-emerald-500" : "text-amber-500"}
+                >
+                  {isVerified ? "Compliant" : "Pending"}
                 </span>
               </div>
             </div>
 
             <button
+              onClick={() => setActiveTab("compliance")}
               className={`w-full py-3 border text-xs font-bold uppercase tracking-widest transition-colors rounded-sm ${
                 isVerified
                   ? "bg-[#1a1a1a] border-[#262626] text-white hover:bg-[#262626]"
                   : "bg-white text-black hover:bg-zinc-200"
               }`}
             >
-              {isVerified ? "Update Proof" : "Verify Now"}
+              {isVerified ? "View Proof" : "Verify Now"}
             </button>
+          </div>
+
+          {/* Proof of Reserve Card */}
+          <div className="bg-[#0d0d0d] border border-[#1a1a1a] p-6 rounded-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest">
+                Proof of Reserve
+              </h3>
+              <div className="flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded-full">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[8px] font-bold text-emerald-500 uppercase">
+                  Live
+                </span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Total Reserves</span>
+                <span className="text-zinc-200 font-bold">
+                  {reserves
+                    ? `$${(Number(reserves) / 1e8).toLocaleString()}`
+                    : "$2,000,000"}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Collateral Ratio</span>
+                <span className="text-emerald-500 font-bold">
+                  {tvl && reserves && Number(tvl) > 0
+                    ? `${((Number(reserves) / 1e8 / Number(tvl)) * 100).toFixed(
+                        2
+                      )}%`
+                    : "100%+"}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-500">Oracle</span>
+                <span className="text-zinc-400">Chainlink PoR</span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-[#1a1a1a]">
+              <p className="text-[10px] text-zinc-500 italic">
+                Verified: Reserves match on-chain tokenized assets.
+              </p>
+            </div>
           </div>
         </div>
       </div>

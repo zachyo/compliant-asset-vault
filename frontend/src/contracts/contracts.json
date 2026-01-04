@@ -17,6 +17,16 @@
             "internalType": "address",
             "name": "_kycSbt",
             "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "_priceFeed",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "_registry",
+            "type": "address"
           }
         ],
         "stateMutability": "nonpayable",
@@ -93,6 +103,19 @@
           {
             "indexed": true,
             "internalType": "address",
+            "name": "priceFeed",
+            "type": "address"
+          }
+        ],
+        "name": "OracleUpdated",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "address",
             "name": "previousOwner",
             "type": "address"
           },
@@ -146,7 +169,7 @@
       },
       {
         "inputs": [],
-        "name": "APY",
+        "name": "BASE_APY",
         "outputs": [
           {
             "internalType": "uint256",
@@ -180,6 +203,19 @@
         "name": "deposit",
         "outputs": [],
         "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getLatestPrice",
+        "outputs": [
+          {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+          }
+        ],
+        "stateMutability": "view",
         "type": "function"
       },
       {
@@ -248,7 +284,59 @@
       },
       {
         "inputs": [],
+        "name": "priceFeed",
+        "outputs": [
+          {
+            "internalType": "contract AggregatorV3Interface",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "registry",
+        "outputs": [
+          {
+            "internalType": "contract IRWARegistry",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
         "name": "renounceOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_priceFeed",
+            "type": "address"
+          }
+        ],
+        "name": "setPriceFeed",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_registry",
+            "type": "address"
+          }
+        ],
+        "name": "setRegistry",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -276,6 +364,19 @@
           {
             "internalType": "uint256",
             "name": "startTime",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "totalValueLocked",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
             "type": "uint256"
           }
         ],
@@ -376,6 +477,11 @@
           {
             "internalType": "address",
             "name": "initialOwner",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "_registry",
             "type": "address"
           }
         ],
@@ -748,6 +854,21 @@
             "internalType": "bool",
             "name": "regulated",
             "type": "bool"
+          },
+          {
+            "internalType": "string",
+            "name": "assetType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "metadataJson",
+            "type": "string"
           }
         ],
         "name": "mint",
@@ -799,6 +920,19 @@
         "outputs": [
           {
             "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "registry",
+        "outputs": [
+          {
+            "internalType": "contract IRWARegistry",
             "name": "",
             "type": "address"
           }
@@ -878,6 +1012,19 @@
           }
         ],
         "name": "setApprovalForAll",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_registry",
+            "type": "address"
+          }
+        ],
+        "name": "setRegistry",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -1848,28 +1995,28 @@
       }
     ]
   },
-  "Verifier": {
+  "Groth16Verifier": {
     "abi": [
       {
         "inputs": [
           {
             "internalType": "uint256[2]",
-            "name": "",
+            "name": "_pA",
             "type": "uint256[2]"
           },
           {
             "internalType": "uint256[2][2]",
-            "name": "",
+            "name": "_pB",
             "type": "uint256[2][2]"
           },
           {
             "internalType": "uint256[2]",
-            "name": "",
+            "name": "_pC",
             "type": "uint256[2]"
           },
           {
             "internalType": "uint256[1]",
-            "name": "",
+            "name": "_pubSignals",
             "type": "uint256[1]"
           }
         ],
@@ -1881,7 +2028,521 @@
             "type": "bool"
           }
         ],
-        "stateMutability": "pure",
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ]
+  },
+  "RWARegistry": {
+    "abi": [
+      {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          }
+        ],
+        "name": "OwnableInvalidOwner",
+        "type": "error"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "OwnableUnauthorizedAccount",
+        "type": "error"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "uint256",
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "string",
+            "name": "assetType",
+            "type": "string"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "internalType": "address",
+            "name": "creator",
+            "type": "address"
+          }
+        ],
+        "name": "AssetRegistered",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "previousOwner",
+            "type": "address"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "OwnershipTransferred",
+        "type": "event"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "allAssetIds",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "assets",
+        "outputs": [
+          {
+            "internalType": "string",
+            "name": "assetType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "metadataJson",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "isRegulated",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "creator",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getAllAssets",
+        "outputs": [
+          {
+            "internalType": "uint256[]",
+            "name": "",
+            "type": "uint256[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "tokenId",
+            "type": "uint256"
+          }
+        ],
+        "name": "getAsset",
+        "outputs": [
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "assetType",
+                "type": "string"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "string",
+                "name": "metadataJson",
+                "type": "string"
+              },
+              {
+                "internalType": "bool",
+                "name": "isRegulated",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+              },
+              {
+                "internalType": "address",
+                "name": "creator",
+                "type": "address"
+              }
+            ],
+            "internalType": "struct RWARegistry.AssetMetadata",
+            "name": "",
+            "type": "tuple"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "tokenId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "assetType",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "metadataJson",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "isRegulated",
+            "type": "bool"
+          }
+        ],
+        "name": "registerAsset",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "renounceOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "transferOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ]
+  },
+  "MockPriceFeed": {
+    "abi": [
+      {
+        "inputs": [
+          {
+            "internalType": "int256",
+            "name": "initialPrice",
+            "type": "int256"
+          }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "inputs": [],
+        "name": "latestRoundData",
+        "outputs": [
+          {
+            "internalType": "uint80",
+            "name": "roundId",
+            "type": "uint80"
+          },
+          {
+            "internalType": "int256",
+            "name": "answer",
+            "type": "int256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "startedAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "updatedAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint80",
+            "name": "answeredInRound",
+            "type": "uint80"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "int256",
+            "name": "price",
+            "type": "int256"
+          }
+        ],
+        "name": "setPrice",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ]
+  },
+  "RWAProofOfReserve": {
+    "abi": [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_porFeed",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          }
+        ],
+        "name": "OwnableInvalidOwner",
+        "type": "error"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "OwnableUnauthorizedAccount",
+        "type": "error"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "previousOwner",
+            "type": "address"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "OwnershipTransferred",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "int256",
+            "name": "amount",
+            "type": "int256"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          }
+        ],
+        "name": "ReserveUpdated",
+        "type": "event"
+      },
+      {
+        "inputs": [],
+        "name": "getLatestReserve",
+        "outputs": [
+          {
+            "internalType": "int256",
+            "name": "",
+            "type": "int256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "totalSupply",
+            "type": "uint256"
+          }
+        ],
+        "name": "isFullyBacked",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "lastUpdate",
+        "outputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "porFeed",
+        "outputs": [
+          {
+            "internalType": "contract AggregatorV3Interface",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "renounceOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_porFeed",
+            "type": "address"
+          }
+        ],
+        "name": "setPoRFeed",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "transferOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
       }
     ]
