@@ -103,6 +103,25 @@ CompliantAssetVault is a decentralized platform built for the **Mantle Global Ha
 - **KYCSBT**: `0x...`
 - **MockYieldToken**: `0x...`
 - **Verifier**: `0x...`
+- **RWARegistry**: `0x...`
+- **MockPriceFeed (Yield)**: `0x...`
+- **RWAProofOfReserve**: `0x...`
+
+## 🗺️ Roadmap & Production Readiness
+
+### Why Mock Feeds?
+
+For the hackathon demo on **Mantle Sepolia**, we use `MockPriceFeed` and `MockPoRFeed` contracts. This is because:
+
+1. **Testnet Availability**: Real-world asset feeds (like specific invoice pools or private bond yields) are often not available on public testnets.
+2. **Demo Control**: Mock feeds allow us to demonstrate dynamic yield changes and Proof-of-Reserve triggers during a 3-minute pitch.
+
+### Path to Mainnet
+
+1. **Chainlink PoR Integration**: Replace mock feeds with official Chainlink Proof of Reserve feeds for specific RWA partners (e.g., Matrixdock, Backed).
+2. **SumSub/Persona API Production**: Transition from simulated ZK-KYC to real-world AML/KYB checks using production API keys.
+3. **Chainlink CCIP**: Implement cross-chain transfers to allow Mantle-native RWAs to be utilized across the Ethereum ecosystem.
+4. **Security Audits**: Conduct professional audits of the Vault and ZK-Verifier contracts.
 
 ## 👥 Team
 

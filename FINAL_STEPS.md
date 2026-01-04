@@ -87,9 +87,10 @@ The ZK circuits must be compiled locally to generate the necessary WASM and ZKey
 
 - [ ] Wallet connects via Reown AppKit (WalletConnect).
 - [ ] ZK-Proof generates successfully in the "Compliance" tab.
-- [ ] Assets can be minted in the "Tokenize" tab.
+- [ ] Assets can be minted in the "Tokenize" tab (Recorded in Registry).
 - [ ] Assets can be deposited into the Vault (requires KYC SBT).
-- [ ] Yield (MYT) is accruing and can be claimed.
+- [ ] Yield (MYT) is accruing dynamically via Chainlink Oracle.
+- [ ] Proof of Reserve status is visible and verified on the Dashboard.
 
 ---
 

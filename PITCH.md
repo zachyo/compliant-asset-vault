@@ -23,7 +23,8 @@ CompliantAssetVault introduces a modular compliance layer on Mantle:
 1. **ZK-KYC**: Users generate a Groth16 proof off-chain that verifies their eligibility (e.g., "Non-Sanctioned", "Accredited") without revealing their identity.
 2. **Soulbound Compliance**: Successful verification mints a non-transferable **KYC Soulbound Token (KYCSBT)** to the user's wallet.
 3. **Privacy-Preserving Vault**: A secure custody contract that permits deposits and yield distribution only to KYCSBT holders, ensuring 100% regulatory compliance with 0% identity exposure.
-4. **Mantle Efficiency**: Leveraging Mantle's modular stack for low-cost metadata storage and high-throughput transaction execution.
+4. **Chainlink Integration**: Using **Chainlink Oracles** for dynamic, real-time yield calculation and **Chainlink Proof of Reserve (PoR)** to provide verifiable transparency of off-chain backing.
+5. **Mantle Efficiency**: Leveraging Mantle's modular stack for low-cost metadata storage and high-throughput transaction execution.
 
 ---
 
@@ -42,13 +43,13 @@ Our revenue model is designed to scale with the growth of the RWA ecosystem:
 ### **Q1 2026: Foundation & Mainnet**
 
 - Launch on Mantle Mainnet with initial support for Invoice Tokenization.
-- Integrate **Mantle DA** for secure, off-chain storage of encrypted asset documentation.
+- Integrate **Chainlink Proof of Reserve** for real-time collateral verification.
 - Audit of ZK circuits and Vault smart contracts.
 
-### **Q2 2026: Asset Expansion**
+### **Q2 2026: Asset Expansion & Liquidity**
 
 - Support for Real Estate Debt and Fractionalized Bonds.
-- Partnership with 3rd-party KYC providers for automated ZK-proof generation.
+- Integrate **Chainlink CCIP** for cross-chain RWA liquidity transfers.
 - Launch of the "Compliance Dashboard" for institutional auditors.
 
 ### **Q3 2026: Ecosystem Scaling**
