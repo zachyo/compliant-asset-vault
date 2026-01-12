@@ -13,7 +13,7 @@ function App() {
       case "dashboard":
         return <Dashboard setActiveTab={setActiveTab} />;
       case "tokenize":
-        return <Tokenize />;
+        return <Tokenize setActiveTab={setActiveTab} />;
       case "vault":
         return <Vault />;
       case "compliance":

@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
+    "test": "npx hardhat test",
+    "test:coverage": "npx hardhat coverage",
     "export-abi": "npx hardhat run scripts/export-to-frontend.ts",
     "deploy:mantle": "npx hardhat ignition deploy ignition/modules/CompliantAssetVault.ts --network mantle-sepolia"
   },

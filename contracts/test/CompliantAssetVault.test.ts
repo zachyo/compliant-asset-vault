@@ -6,8 +6,8 @@ describe("CompliantAssetVault System", function () {
   async function deploySystemFixture() {
     const [owner, user, otherAccount] = await ethers.getSigners();
 
-    // 1. Deploy Verifier (Mock)
-    const Verifier = await ethers.getContractFactory("Verifier");
+    // 1. Deploy Verifier (Mock for testing)
+    const Verifier = await ethers.getContractFactory("MockVerifier");
     const verifier = await Verifier.deploy();
 
     // 2. Deploy Mock Yield Token
@@ -18,22 +18,35 @@ describe("CompliantAssetVault System", function () {
     const KYCSBT = await ethers.getContractFactory("KYCSBT");
     const kycSbt = await KYCSBT.deploy(owner.address);
 
-    // 4. Deploy RWA Asset
-    const RWAAsset = await ethers.getContractFactory("RWAAsset");
-    const rwaAsset = await RWAAsset.deploy(owner.address);
+    // 4. Deploy RWA Registry
+    const RWARegistry = await ethers.getContractFactory("RWARegistry");
+    const registry = await RWARegistry.deploy();
 
-    // 5. Deploy Vault
+    // 5. Deploy Mock Price Feed (Initial price 1.00 with 8 decimals)
+    const MockPriceFeed = await ethers.getContractFactory("MockPriceFeed");
+    const priceFeed = await MockPriceFeed.deploy(100000000);
+
+    // 6. Deploy RWA Asset
+    const RWAAsset = await ethers.getContractFactory("RWAAsset");
+    const rwaAsset = await RWAAsset.deploy(
+      owner.address,
+      await registry.getAddress()
+    );
+
+    // 7. Deploy Vault
     const Vault = await ethers.getContractFactory("CompliantAssetVault");
     const vault = await Vault.deploy(
       await verifier.getAddress(),
       await yieldToken.getAddress(),
-      await kycSbt.getAddress()
+      await kycSbt.getAddress(),
+      await priceFeed.getAddress(),
+      await registry.getAddress()
     );
 
-    // 6. Setup: Transfer KYCSBT ownership to Vault
+    // 8. Setup: Transfer KYCSBT ownership to Vault
     await kycSbt.transferOwnership(await vault.getAddress());
 
-    // 7. Setup: Transfer some yield tokens to Vault for rewards
+    // 9. Setup: Transfer some yield tokens to Vault for rewards
     await yieldToken.transfer(
       await vault.getAddress(),
       ethers.parseEther("1000")
@@ -45,6 +58,8 @@ describe("CompliantAssetVault System", function () {
       kycSbt,
       rwaAsset,
       vault,
+      registry,
+      priceFeed,
       owner,
       user,
       otherAccount,
@@ -56,7 +71,14 @@ describe("CompliantAssetVault System", function () {
       const { rwaAsset, user, owner } = await loadFixture(deploySystemFixture);
       const uri = "ipfs://test";
 
-      await rwaAsset.mint(user.address, uri, true);
+      await rwaAsset.mint(
+        user.address,
+        uri,
+        true,
+        "RealEstate",
+        ethers.parseEther("100000"),
+        "{}"
+      );
 
       expect(await rwaAsset.ownerOf(0)).to.equal(user.address);
       expect(await rwaAsset.tokenURI(0)).to.equal(uri);
@@ -66,7 +88,16 @@ describe("CompliantAssetVault System", function () {
     it("Should only allow owner to mint", async function () {
       const { rwaAsset, user } = await loadFixture(deploySystemFixture);
       await expect(
-        rwaAsset.connect(user).mint(user.address, "uri", true)
+        rwaAsset
+          .connect(user)
+          .mint(
+            user.address,
+            "uri",
+            true,
+            "RealEstate",
+            ethers.parseEther("100000"),
+            "{}"
+          )
       ).to.be.revertedWithCustomError(rwaAsset, "OwnableUnauthorizedAccount");
     });
   });
@@ -105,7 +136,14 @@ describe("CompliantAssetVault System", function () {
     it("Should only allow verified users to deposit", async function () {
       const { vault, rwaAsset, user } = await loadFixture(deploySystemFixture);
 
-      await rwaAsset.mint(user.address, "uri", true);
+      await rwaAsset.mint(
+        user.address,
+        "uri",
+        true,
+        "RealEstate",
+        ethers.parseEther("100000"),
+        "{}"
+      );
       await rwaAsset.connect(user).approve(await vault.getAddress(), 0);
 
       await expect(
@@ -128,7 +166,14 @@ describe("CompliantAssetVault System", function () {
       );
 
       // Mint and Deposit
-      await rwaAsset.mint(user.address, "uri", true);
+      await rwaAsset.mint(
+        user.address,
+        "uri",
+        true,
+        "RealEstate",
+        ethers.parseEther("100000"),
+        "{}"
+      );
       await rwaAsset.connect(user).approve(await vault.getAddress(), 0);
       await vault.connect(user).deposit(await rwaAsset.getAddress(), 0);
 
@@ -153,7 +198,14 @@ describe("CompliantAssetVault System", function () {
         [0, 0],
         [0]
       );
-      await rwaAsset.mint(user.address, "uri", true);
+      await rwaAsset.mint(
+        user.address,
+        "uri",
+        true,
+        "RealEstate",
+        ethers.parseEther("100000"),
+        "{}"
+      );
       await rwaAsset.connect(user).approve(await vault.getAddress(), 0);
       await vault.connect(user).deposit(await rwaAsset.getAddress(), 0);
 

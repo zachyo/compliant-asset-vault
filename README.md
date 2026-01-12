@@ -6,7 +6,7 @@ CompliantAssetVault is a decentralized platform built for the **Mantle Global Ha
 
 ![Dashboard Preview](https://via.placeholder.com/800x450?text=CompliantAssetVault+Dashboard)
 
-## 🌟 Key Features
+## Key Features
 
 - **ZK-KYC Verification**: Prove compliance (non-sanctioned, age, etc.) without revealing personal identity using Circom-based ZK-proofs.
 - **RWA Tokenization**: Mint ERC-721 tokens representing real-world assets with on-chain regulation flags.
@@ -14,7 +14,7 @@ CompliantAssetVault is a decentralized platform built for the **Mantle Global Ha
 - **Soulbound Compliance**: Verified users receive a non-transferable KYC Soulbound Token (KYCSBT) for seamless ecosystem access.
 - **Premium UI**: A mature, dark-themed dashboard built with Tailwind CSS 4 and Reown AppKit.
 
-## 🏗️ Technical Stack
+## Technical Stack
 
 - **Blockchain**: Mantle Sepolia Testnet
 - **Smart Contracts**: Solidity (Hardhat, OpenZeppelin)
@@ -22,7 +22,7 @@ CompliantAssetVault is a decentralized platform built for the **Mantle Global Ha
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS 4
 - **Web3 Library**: Wagmi, Viem, Reown AppKit (WalletConnect)
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 ├── circuits/           # ZK-KYC Circom circuits and setup scripts
@@ -31,7 +31,7 @@ CompliantAssetVault is a decentralized platform built for the **Mantle Global Ha
 └── README.md           # Project overview
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -96,18 +96,33 @@ CompliantAssetVault is a decentralized platform built for the **Mantle Global Ha
    ```
 2. Move the generated WASM and ZKey files to `frontend/public/zk/`.
 
-### 📍 Deployed Contract Addresses (Mantle Sepolia)
+### 3. Testing
 
-- **CompliantAssetVault**: `0x...`
-- **RWAAsset**: `0x...`
-- **KYCSBT**: `0x...`
-- **MockYieldToken**: `0x...`
-- **Verifier**: `0x...`
-- **RWARegistry**: `0x...`
-- **MockPriceFeed (Yield)**: `0x...`
-- **RWAProofOfReserve**: `0x...`
+Run the comprehensive test suite to verify all smart contract functionality:
 
-## 🗺️ Roadmap & Production Readiness
+1. Navigate to the `contracts` directory:
+   ```bash
+   cd contracts
+   ```
+2. Run all tests:
+   ```bash
+   npm test
+   ```
+3. Generate coverage report:
+   ```bash
+   npm run test:coverage
+   ```
+
+**Current Test Coverage:**
+
+- ✅ RWA Tokenization (minting with regulation flags)
+- ✅ KYC Soulbound Token (non-transferable verification)
+- ✅ Vault Access Control (verified users only)
+- ✅ Deposit/Withdrawal Operations
+- ✅ Dynamic Yield Accumulation
+- **6 passing tests** covering core functionality
+
+## Roadmap & Production Readiness
 
 ### Why Mock Feeds?
 
@@ -123,18 +138,65 @@ For the hackathon demo on **Mantle Sepolia**, we use `MockPriceFeed` and `MockPo
 3. **Chainlink CCIP**: Implement cross-chain transfers to allow Mantle-native RWAs to be utilized across the Ethereum ecosystem.
 4. **Security Audits**: Conduct professional audits of the Vault and ZK-Verifier contracts.
 
-## 👥 Team
+## Team
 
-- **[Your Name]**: Full-stack Developer with [X] years of experience in Web3. Previously built [Project Name].
-  - [Twitter](https://twitter.com/yourhandle) | [LinkedIn](https://linkedin.com/in/yourprofile) | [GitHub](https://github.com/yourhandle)
-  - **Contact**: [email@example.com] | Discord: [yourhandle]
+- **[Zacheus Israel]**: Full-stack Developer with years of experience in Web3. Previously built [VieledBatch](https://github.com/zachyo/VeiledBatch).
+  - [Twitter](https://twitter.com/zachy_yo) | [LinkedIn](https://linkedin.com/in/zacheusio) | [GitHub](https://github.com/zachyo)
+  - **Contact**: [segunzacheusi@gmail.com] | Discord: [donzachy]
 
-## 📜 Documentation
+## Compliance Declaration
 
-- 👉 **[FINAL_STEPS.md](./FINAL_STEPS.md)**: Detailed technical setup.
-- 👉 **[PITCH.md](./PITCH.md)**: Business model, problem/solution, and roadmap.
-- 👉 **[DEMO_SCRIPT.md](./DEMO_SCRIPT.md)**: 3-5 minute product walkthrough.
+**Regulatory Disclosure Statement**
 
-## ⚖️ License
+This project involves the tokenization of **regulated real-world assets**, including but not limited to:
+
+- Commercial invoices and receivables
+- Corporate bonds and debt instruments
+- Other financial instruments subject to securities regulations
+
+### Compliance Framework
+
+**For Hackathon Demonstration:**
+
+- This is a **proof-of-concept** built for the Mantle Global Hackathon 2025
+- Uses **simulated KYC/AML verification** for demonstration purposes
+- Deployed on **Mantle Sepolia Testnet** with mock oracle feeds
+- **No real financial instruments** are tokenized or traded
+
+**Production Compliance Roadmap:**
+
+1. **KYC/AML Integration**: Full integration with licensed providers (SumSub, Persona) for real-world identity verification
+2. **Regulatory Licensing**: Obtain necessary licenses for RWA tokenization in target jurisdictions
+3. **Chainlink Proof of Reserve**: Replace mock feeds with production-grade oracle attestations
+4. **Legal Structure**: Establish SPV (Special Purpose Vehicle) entities for asset custody
+5. **Security Audits**: Professional smart contract audits by firms like OpenZeppelin, Trail of Bits, or Certora
+6. **Jurisdictional Compliance**: Ensure compliance with:
+   - SEC regulations (US) for securities tokenization
+   - MiCA framework (EU) for crypto-asset regulation
+   - Local AML/CFT requirements in operating jurisdictions
+
+### Privacy & Data Protection
+
+- **Zero-Knowledge Proofs**: User identity data is **never stored on-chain**
+- **GDPR Compliance**: Off-chain KYC data handling follows data protection regulations
+- **Selective Disclosure**: Only compliance status (verified/not verified) is revealed publicly
+- **Soulbound Tokens**: Non-transferable verification credentials prevent identity trading
+
+### Risk Disclosure
+
+Users should be aware that:
+
+- Smart contracts carry inherent risks including bugs and exploits
+- RWA tokenization is subject to evolving regulatory frameworks
+- This demonstration uses mock data and should not be used for real asset management
+- Always conduct due diligence before interacting with production deployments
+
+**For questions regarding compliance, contact**: [segunzacheusi@gmail.com]
+
+## Documentation
+
+- **[PITCH.md](./PITCH.md)**: Business model, problem/solution, and roadmap.
+
+## License
 
 This project is licensed under the MIT License.

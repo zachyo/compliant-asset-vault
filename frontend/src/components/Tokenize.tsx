@@ -1,12 +1,19 @@
 import React, { useState } from "react";
 import { Upload, Info, Loader2 } from "lucide-react";
 import { useWriteContract, useAccount } from "wagmi";
+import { useQueryClient } from "@tanstack/react-query";
 import { CONTRACT_ADDRESSES } from "../constants";
 import contracts from "../contracts/contracts.json";
 import { toast } from "sonner";
+import { uploadToIPFS, uploadFileToIPFS } from "../utils/ipfs";
 
-export const Tokenize: React.FC = () => {
+interface TokenizeProps {
+  setActiveTab: (tab: string) => void;
+}
+
+export const Tokenize: React.FC<TokenizeProps> = ({ setActiveTab }) => {
   const { address } = useAccount();
+  const queryClient = useQueryClient();
   const [assetType, setAssetType] = useState("Invoice");
   const [value, setValue] = useState("");
   const [metadata, setMetadata] = useState(
@@ -14,20 +21,87 @@ export const Tokenize: React.FC = () => {
   );
   const [isRegulated, setIsRegulated] = useState(true);
   const [isMinting, setIsMinting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [, setFileUploadUri] = useState<string>("");
 
   const { writeContractAsync } = useWriteContract();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only PDF and JPG/PNG files are allowed");
+      return;
+    }
+
+    setSelectedFile(file);
+    toast.success(`${file.name} selected - will upload when you mint`);
+  };
 
   const handleMint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address || !value) return;
 
     setIsMinting(true);
-    const toastId = toast.loading("Minting asset on Mantle...");
-    try {
-      // In a real app, we'd upload metadata to IPFS here
-      const tokenUri = `ipfs://mock-hash-${Date.now()}`;
+    const toastId = toast.loading("Starting minting process...");
 
-      const hash = await writeContractAsync({
+    try {
+      // Step 1: Upload file to IPFS if selected
+      if (selectedFile) {
+        toast.loading(`Uploading ${selectedFile.name} to IPFS...`, {
+          id: toastId,
+        });
+        try {
+          const uri = await uploadFileToIPFS(selectedFile);
+          setFileUploadUri(uri);
+          toast.loading("File uploaded! Now uploading metadata...", {
+            id: toastId,
+          });
+        } catch (error: any) {
+          console.error("File upload error:", error);
+          if (error.message.includes("not configured")) {
+            toast.loading(
+              "IPFS not configured. Continuing with metadata upload...",
+              { id: toastId }
+            );
+          } else {
+            throw new Error(`File upload failed: ${error.message}`);
+          }
+        }
+      } else {
+        toast.loading("Uploading metadata to IPFS...", { id: toastId });
+      }
+
+      // Step 2: Upload metadata to IPFS
+      const tokenUri = await uploadToIPFS({
+        assetType,
+        value,
+        metadata,
+        isRegulated,
+        timestamp: Date.now(),
+        owner: address,
+      });
+
+      toast.loading("Metadata uploaded! Minting asset on Mantle...", {
+        id: toastId,
+      });
+
+      // Step 3: Mint on blockchain
+      await writeContractAsync({
         address: CONTRACT_ADDRESSES.RWAAsset as `0x${string}`,
         abi: contracts.RWAAsset.abi as any,
         functionName: "mint",
@@ -45,11 +119,21 @@ export const Tokenize: React.FC = () => {
         id: toastId,
       });
 
-      // We could use useWaitForTransactionReceipt here too, but for simplicity
-      // in this component we'll just show success after the hash is returned
-      // or we can just leave it as is if we want to be quick.
-      // Actually, let's just use the toast to show success.
+      // Invalidate queries to refetch dashboard data
+      await queryClient.invalidateQueries({ queryKey: ["readContract"] });
+
       toast.success("Asset tokenized successfully on Mantle!", { id: toastId });
+
+      // Reset form
+      setValue("");
+      setMetadata('{ "issuer": "Corp X", "invoice_id": "8821" }');
+      setSelectedFile(null);
+      setFileUploadUri("");
+
+      // Navigate to dashboard after short delay to show success message
+      setTimeout(() => {
+        setActiveTab("dashboard");
+      }, 1500);
     } catch (err: any) {
       console.error(err);
       toast.error("Failed to tokenize asset: " + err.message, { id: toastId });
@@ -147,15 +231,43 @@ export const Tokenize: React.FC = () => {
             />
           </label>
 
-          <div className="p-8 border-2 border-dashed border-[#1a1a1a] rounded-sm hover:border-[#262626] transition-colors group cursor-pointer text-center">
-            <Upload className="w-8 h-8 text-zinc-600 group-hover:text-zinc-400 mx-auto mb-4 transition-colors" />
-            <p className="text-sm text-zinc-500">
-              Click to upload asset documentation (PDF, JPG)
-            </p>
-            <p className="text-[10px] text-zinc-700 mt-2 uppercase tracking-widest">
-              Max size: 10MB
-            </p>
-          </div>
+          <label className="block">
+            <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+              Asset Documentation (Optional)
+            </span>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleFileChange}
+              className="hidden"
+              id="file-upload"
+            />
+            <label
+              htmlFor="file-upload"
+              className="mt-2 block p-8 border-2 border-dashed border-[#1a1a1a] rounded-sm hover:border-[#262626] transition-colors group cursor-pointer text-center"
+            >
+              <Upload className="w-8 h-8 text-zinc-600 group-hover:text-zinc-400 mx-auto mb-4 transition-colors" />
+              {selectedFile ? (
+                <>
+                  <p className="text-sm text-emerald-500 font-medium">
+                    ✓ {selectedFile.name}
+                  </p>
+                  <p className="text-[10px] text-zinc-600 mt-2">
+                    {(selectedFile.size / 1024).toFixed(2)} KB • Ready to upload
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-zinc-500">
+                    Click to upload asset documentation (PDF, JPG, PNG)
+                  </p>
+                  <p className="text-[10px] text-zinc-700 mt-2 uppercase tracking-widest">
+                    Max size: 10MB
+                  </p>
+                </>
+              )}
+            </label>
+          </label>
         </div>
 
         <div className="flex items-start gap-3 p-4 bg-[#121212] border border-[#1a1a1a] rounded-sm">

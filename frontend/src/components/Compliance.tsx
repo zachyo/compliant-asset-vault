@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Info,
   HelpCircle,
 } from "lucide-react";
 import * as snarkjs from "snarkjs";
