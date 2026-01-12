@@ -60,6 +60,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       functionName: "ownerOf",
       args: [BigInt(id)],
     })) as any,
+    query: {
+      enabled: !!address,
+    },
   });
 
   const { data: registryData } = useReadContracts({
@@ -69,25 +72,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
       functionName: "assets",
       args: [BigInt(id)],
     })) as any,
+    query: {
+      enabled: !!address,
+    },
   });
 
-  const userAssets = tokenIds
-    .map((id, index) => {
-      const owner = owners?.[index]?.result;
-      const metadata = registryData?.[index]?.result as any;
+  const userAssets = !address
+    ? []
+    : tokenIds
+        .map((id, index) => {
+          const owner = owners?.[index]?.result;
+          const metadata = registryData?.[index]?.result as any;
 
-      if (owner === address) {
-        return {
-          id,
-          name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
-          type: metadata ? metadata[0] : "Unknown",
-          value: metadata ? `$${Number(metadata[1]).toLocaleString()}` : "$0",
-          status: "In Wallet",
-        };
-      }
-      return null;
-    })
-    .filter((a) => a !== null);
+          if (owner === address) {
+            return {
+              id,
+              name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
+              type: metadata ? metadata[0] : "Unknown",
+              value: metadata
+                ? `$${Number(metadata[1]).toLocaleString()}`
+                : "$0",
+              status: "In Wallet",
+            };
+          }
+          return null;
+        })
+        .filter((a) => a !== null);
 
   const stats = [
     {
@@ -197,11 +207,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="px-6 py-8 text-center text-zinc-500 text-xs italic"
-                    >
-                      No assets found. Mint your first RWA to see it here.
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      {!address ? (
+                        <div className="space-y-3">
+                          <p className="text-sm text-zinc-400">
+                            Connect your wallet to view your assets
+                          </p>
+                          <p className="text-xs text-zinc-600">
+                            Click the button at the top right to get started
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-500 italic">
+                          No assets found. Mint your first RWA to see it here.
+                        </p>
+                      )}
                     </td>
                   </tr>
                 )}

@@ -65,6 +65,9 @@ export const Vault: React.FC = () => {
       functionName: "ownerOf",
       args: [BigInt(id)],
     })) as any,
+    query: {
+      enabled: !!address,
+    },
   });
 
   // Check stakes
@@ -75,6 +78,9 @@ export const Vault: React.FC = () => {
       functionName: "stakes",
       args: [BigInt(id)],
     })) as any,
+    query: {
+      enabled: !!address,
+    },
   });
 
   // Check registry data
@@ -85,6 +91,9 @@ export const Vault: React.FC = () => {
       functionName: "assets",
       args: [BigInt(id)],
     })) as any,
+    query: {
+      enabled: !!address,
+    },
   });
 
   useEffect(() => {
@@ -97,36 +106,44 @@ export const Vault: React.FC = () => {
     }
   }, [isConfirmed, refetchYield, refetchOwners, refetchStakes]);
 
-  const stakeableAssets = tokenIds
-    .map((id, index) => {
-      const owner = owners?.[index]?.result;
-      const metadata = registryData?.[index]?.result as any;
-      if (owner === address) {
-        return {
-          id,
-          name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
-          value: metadata ? `$${Number(metadata[1]).toLocaleString()}` : "$0",
-        };
-      }
-      return null;
-    })
-    .filter((a) => a !== null);
+  const stakeableAssets = !address
+    ? []
+    : tokenIds
+        .map((id, index) => {
+          const owner = owners?.[index]?.result;
+          const metadata = registryData?.[index]?.result as any;
+          if (owner === address) {
+            return {
+              id,
+              name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
+              value: metadata
+                ? `$${Number(metadata[1]).toLocaleString()}`
+                : "$0",
+            };
+          }
+          return null;
+        })
+        .filter((a) => a !== null);
 
-  const stakedAssets = tokenIds
-    .map((id, index) => {
-      const stake = stakes?.[index]?.result as any;
-      const metadata = registryData?.[index]?.result as any;
-      if (stake && stake[1] === address) {
-        // stake[1] is the owner address in the Stake struct
-        return {
-          id,
-          name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
-          value: metadata ? `$${Number(metadata[1]).toLocaleString()}` : "$0",
-        };
-      }
-      return null;
-    })
-    .filter((a) => a !== null);
+  const stakedAssets = !address
+    ? []
+    : tokenIds
+        .map((id, index) => {
+          const stake = stakes?.[index]?.result as any;
+          const metadata = registryData?.[index]?.result as any;
+          if (stake && stake[1] === address) {
+            // stake[1] is the owner address in the Stake struct
+            return {
+              id,
+              name: metadata ? `RWA ${metadata[0]} #${id}` : `RWA Asset #${id}`,
+              value: metadata
+                ? `$${Number(metadata[1]).toLocaleString()}`
+                : "$0",
+            };
+          }
+          return null;
+        })
+        .filter((a) => a !== null);
 
   const handleDeposit = async (tokenId: number) => {
     if (!address) return;
@@ -285,9 +302,22 @@ export const Vault: React.FC = () => {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-zinc-500 italic p-4">
-                No assets available to stake.
-              </p>
+              <div className="p-8 text-center">
+                {!address ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-zinc-400">
+                      Connect your wallet to view your assets
+                    </p>
+                    <p className="text-xs text-zinc-600">
+                      Click the button at the top right to get started
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 italic">
+                    No assets available to stake.
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -393,9 +423,22 @@ export const Vault: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-zinc-500 italic p-4">
-                  No active stakes.
-                </p>
+                <div className="p-8 text-center">
+                  {!address ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-zinc-400">
+                        Connect your wallet to view your staked assets
+                      </p>
+                      <p className="text-xs text-zinc-600">
+                        Click the button at the top right to get started
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500 italic">
+                      No active stakes.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </div>
