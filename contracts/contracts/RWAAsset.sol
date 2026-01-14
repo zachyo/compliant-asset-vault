@@ -38,7 +38,7 @@ contract RWAAsset is ERC721URIStorage, Ownable {
         string memory assetType,
         uint256 value,
         string memory metadataJson
-    ) public onlyOwner returns (uint256) {
+    ) public returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);

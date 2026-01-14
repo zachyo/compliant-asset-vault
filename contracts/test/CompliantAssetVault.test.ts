@@ -85,20 +85,24 @@ describe("CompliantAssetVault System", function () {
       expect(await rwaAsset.isRegulated(0)).to.be.true;
     });
 
-    it("Should only allow owner to mint", async function () {
+    it("Should allow any user to mint their own assets", async function () {
       const { rwaAsset, user } = await loadFixture(deploySystemFixture);
-      await expect(
-        rwaAsset
-          .connect(user)
-          .mint(
-            user.address,
-            "uri",
-            true,
-            "RealEstate",
-            ethers.parseEther("100000"),
-            "{}"
-          )
-      ).to.be.revertedWithCustomError(rwaAsset, "OwnableUnauthorizedAccount");
+
+      // User should be able to mint their own asset
+      await rwaAsset
+        .connect(user)
+        .mint(
+          user.address,
+          "ipfs://user-asset",
+          true,
+          "Invoice",
+          ethers.parseEther("50000"),
+          '{"issuer": "User Corp"}'
+        );
+
+      expect(await rwaAsset.ownerOf(0)).to.equal(user.address);
+      expect(await rwaAsset.tokenURI(0)).to.equal("ipfs://user-asset");
+      expect(await rwaAsset.isRegulated(0)).to.be.true;
     });
   });
 

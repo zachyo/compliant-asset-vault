@@ -27,6 +27,9 @@ export const Compliance: React.FC = () => {
     "idle" | "generating" | "verifying" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [loadingToastId, setLoadingToastId] = useState<
+    string | number | undefined
+  >();
 
   const { writeContractAsync, data: txHash } = useWriteContract();
 
@@ -53,9 +56,14 @@ export const Compliance: React.FC = () => {
       refetch();
       setStatus("success");
       setIsGenerating(false);
+      // Dismiss the loading toast first
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
       toast.success("Identity verified successfully on Mantle!");
+      setLoadingToastId(undefined);
     }
-  }, [isConfirmed, refetch]);
+  }, [isConfirmed, refetch, loadingToastId]);
 
   const generateAndVerify = async () => {
     if (!secret || !address) return;
@@ -64,6 +72,7 @@ export const Compliance: React.FC = () => {
     setStatus("generating");
     setErrorMessage("");
     const toastId = toast.loading("Generating ZK Proof...");
+    setLoadingToastId(toastId);
 
     try {
       // 1. Build Poseidon hasher
@@ -121,6 +130,7 @@ export const Compliance: React.FC = () => {
         err.message || "Failed to verify. Ensure ZK files are in public/zk/";
       setErrorMessage(msg);
       toast.error(msg, { id: toastId });
+      setLoadingToastId(undefined);
     }
   };
 
