@@ -4,7 +4,7 @@
 
 CompliantAssetVault is a decentralized platform built for the **Mantle Global Hackathon 2025**. It enables users to tokenize real-world assets (RWAs) like invoices and bonds while maintaining privacy through **Zero-Knowledge KYC (ZK-KYC)**.
 
-![Dashboard Preview](./dashboard-preview.png)
+![Dashboard Preview](./landing.png)
 
 ## Key Features
 
